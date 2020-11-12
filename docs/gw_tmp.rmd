@@ -1,0 +1,675 @@
+---
+title: 'Arizona Groundwater research'
+author: "[Angus Watters](https://anguswg-ucsb.github.io/)"
+output:
+  mikedown::ucsb:
+    toc: TRUE
+    number_sections: FALSE
+    code_folding: "hide"
+---
+
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE}
+
+library(tidyverse)
+library(rmarkdown)     # You need this library to run this template.
+library(mikedown)   
+```
+
+
+
+***
+
+```{r, message= FALSE, warning = FALSE, echo = TRUE}
+# Libraries
+library(tidyverse)
+library(sf)
+library(USAboundaries)
+library(ggthemes)
+library(cowplot)
+library(sp)
+library(leaflet)
+```
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE}
+source("../docs/utils.R") 
+```
+
+<br>
+<br>
+
+# **Measurement threshold** *(1960 - 2000)*
+A minimum threshold of 10 distinct measurements with at least 1 measurement every 5 years was applied to filter for only the regularly monitored wells. investigate regularly monitored wells 
+
+***
+
+<br>
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, include=FALSE}
+#source("your-script.R", local = knitr::knit_global())
+sys.source("az-usgs-dtw.R", envir = knitr::knit_global())
+```
+
+```{r, message = FALSE, warning = FALSE, echo = TRUE}
+# Data from USGS National Water Information System (NWIS)
+
+# Arizona state shape (CRS = 5070)
+az = us_states() %>% 
+  filter(name == 'Arizona') %>% 
+  st_transform(5070)
+
+# add 'well #' for each unique well
+usgs = az_nwis_unique_sites
+usgs$wellid = paste("well", 1:nrow(usgs))
+
+# remove wells located at same lat/long but have different well ID
+usgs_spatial = usgs %>% 
+  st_as_sf(coords = c('long_nad83', 'lat_nad83'), crs = 4269) %>% 
+  st_transform(5070) %>%
+  as_Spatial() %>% 
+  remove.duplicates() %>% 
+  st_as_sf() %>% 
+  group_by(wellid)
+
+# match 'well #' from spatial data frame to corresponding well in time series data frame
+usgs_time = az_nwis_all %>% 
+  group_by(site_id) 
+usgs_time = left_join(usgs_time, select(usgs, site_id, wellid), by = "site_id") 
+usgs_time = usgs_time %>% filter(wellid %in% usgs_spatial$wellid)
+
+# FILTER BY THRESHOLD - at least 10 measurements and at least 1 measurement every 5 years
+thresh = usgs_time %>% 
+  group_by(wellid) %>% 
+  filter(measurement_dist >= 10) %>% 
+  mutate(measure_period = year - lag(year)) %>% 
+  filter(any(measure_period > 5))
+usgs_time = usgs_time %>% filter(!wellid %in% thresh$wellid, measurement_dist >= 10) %>% 
+  mutate(measure_period = year - lag(year))
+usgs_spatial = usgs_spatial %>% 
+  filter(!wellid %in% thresh$wellid) %>% 
+  filter(measurement_dist >= 10)
+```
+
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+ama = read_sf('../data/Act_Man_Areas.shp') %>% 
+  st_transform(5070) %>% 
+  st_cast("MULTIPOLYGON")
+
+ama3 = ama %>% st_transform(4326)
+
+x = usgs_spatial %>% st_transform(4326)
+
+pal1 = RColorBrewer::brewer.pal(9,"Blues")
+pal2 = RColorBrewer::brewer.pal(9,"YlOrRd")
+pal3 = RColorBrewer::brewer.pal(9,"YlGnBu")
+
+pals1 = colorNumeric(pal1, domain = x$dtw)
+pals2 = colorNumeric(pal2, domain = x$dtw)
+pals3 = colorBin(pal3, domain = 1:8)
+
+
+a = dtw_range(x, 0, 100) %>% select(wellid, date, dtw, measurement_dist)
+b = dtw_range(x, 100, 200) %>% select(wellid, date, dtw, measurement_dist)
+c = dtw_range(x, 200, 300) %>% select(wellid, date, dtw, measurement_dist)
+d = dtw_range(x, 300, 400) %>% select(wellid, date, dtw, measurement_dist)
+e = dtw_range(x, 400, 500) %>% select(wellid, date, dtw, measurement_dist)
+f = dtw_range(x, 500, 600) %>% select(wellid, date, dtw, measurement_dist)
+g = dtw_range(x, 600, 700) %>% select(wellid, date, dtw, measurement_dist)
+h = dtw_range(x, 700, 800) %>% select(wellid, date, dtw, measurement_dist)
+i = dtw_range(x, 800, 900) %>% select(wellid, date, dtw, measurement_dist)
+j = dtw_range(x, 900, 1500) %>% select(wellid, date, dtw, measurement_dist)
+
+leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron, group = 'Tiles') %>% 
+  addCircleMarkers(data = a, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(a, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '0 - 100 ft') %>% 
+  addCircleMarkers(data = b, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(b, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '100 - 200 ft') %>% 
+  addCircleMarkers(data = c, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(c, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '200 - 300 ft') %>% 
+  addCircleMarkers(data = d, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(d, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '300 - 400 ft') %>% 
+  addCircleMarkers(data = e, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(e, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '400 - 500 ft') %>% 
+  addCircleMarkers(data = f, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(f, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '500 - 600 ft') %>% 
+  addCircleMarkers(data = g, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(g, feature.id = FALSE, 
+                                               row.numbers = FALSE), group = '600 - 700 ft') %>% 
+  addCircleMarkers(data = h, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(h, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '700 - 800 ft') %>%
+  addCircleMarkers(data = i, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(i, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '800 - 900 ft') %>%
+  addCircleMarkers(data = j, #clusterOptions = markerClusterOptions(interactive()),
+                   color = ~pals2(dtw), fillOpacity = .8,
+                   stroke = FALSE,
+                   popup = leafpop::popupTable(j, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '900 > ft') %>%
+
+  addPolygons(data = ama3,
+              fillColor  = ~pals3(OBJECTID), fillOpacity = 0.4,
+              color = 'black',
+              label = ~MAP_LABEL, group = 'AMA') %>%
+  addLayersControl(overlayGroups = c('0 - 100 ft', '100 - 200 ft', '200 - 300 ft',
+                                     '300 - 400 ft', '400 - 500 ft',
+                                     '500 - 600 ft', '600 - 700 ft',
+                                     '700 - 800 ft', '800 - 900 ft', '900 > ft', 'AMA'),
+                   baseGroups = c("Tiles"))
+```
+
+***
+
+<br>
+<br>
+<br>
+<br>
+
+
+
+# **Wells deeper than 500ft**
+
+***
+
+<br>
+<br>
+<br>
+
+## **500 - 1000ft** 
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo=FALSE, out.width = "100%"}
+multi_well_plot(usgs_spatial, usgs_time, 500, 1000)
+```
+
+<br>
+<br>
+<br>
+
+***
+
+## **500 - 600ft**
+
+***
+
+I decided to include these increments of 100ft as it is visually easier to track individual wells
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+multi_well_plot(usgs_spatial, usgs_time, 500, 600)
+```
+
+<br>
+<br>
+<br>
+
+***
+
+## **600 - 700ft**
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+multi_well_plot(usgs_spatial, usgs_time, 600, 700)
+```
+
+<br>
+<br>
+<br>
+
+## **Wells with over 50 measurements**
+
+***
+
+<br>
+<br>
+<br>
+
+
+### **Phoenix AMA**
+
+***
+
+<br>
+<br>
+<br>
+
+### **Well 5284**
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 5284)
+```
+
+<br>
+<br>
+<br>
+
+### **Well 5324**
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 5324)
+```
+
+<br>
+<br>
+<br>
+
+
+
+### **Harquahala AMA**
+
+***
+
+<br>
+<br>
+
+### **Well 292**
+
+***
+
+<br>
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 292)
+```
+
+<br>
+<br>
+<br>
+
+### **Well 504** 
+
+***
+
+Located just north of Harquahala AMA boundary
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 504)
+```
+
+<br>
+<br>
+<br>
+
+***
+
+### **Kingman**
+
+***
+
+<br>
+<br>
+
+### **Well 1139**
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1139)
+```
+
+<br>
+<br>
+<br>
+
+***
+
+### **Outside Tuscan AMA**
+
+***
+
+<br>
+<br>
+
+### **Well 575**
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 575)
+```
+
+<br>
+<br>
+<br>
+
+# **Wells deeper than 1000ft**
+
+***
+
+<br>
+<br>
+
+## **Flagstaff**
+
+<br>
+
+### **Well 1133**
+
+***
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1133)
+```
+
+
+
+<br>
+<br>
+<br>
+
+### **Well 1215**
+
+***
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1215)
+```
+
+***
+
+<br>
+<br>
+<br>
+
+### **Well 3450** 
+
+***
+
+Well 3450 was monitored continuously since ~1965
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 3450)
+```
+
+***
+
+<br>
+<br>
+<br>
+
+### **Well 1242**
+
+***
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1242)
+```
+
+***
+
+<br>
+<br>
+<br>
+
+### **Well 1226**
+
+***
+
+Wells 1226 & 2710 had measurements recorded only for a couple years in the late 1990s
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1226)
+```
+
+***
+
+<br>
+<br>
+<br>
+
+### **Well 2710**
+
+***
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 2710)
+```
+
+<br>
+<br>
+<br>
+<br>
+
+## **Between Flagstaff and Kingman**
+
+
+***
+
+<br>
+<br>
+
+### **Well 5155**
+
+***
+
+Northwest of Flagstaff and northeast of Kingman
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 5155)
+```
+
+<br>
+<br>
+<br>
+
+## **Northeast of Flagstaff**
+
+***
+
+### **Well 1669**
+
+***
+
+shows a continual decline in DTW from ~1975 - 2000
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1669)
+```
+
+
+<br>
+<br>
+<br>
+
+### **Well 1411**
+
+***
+
+Well 1411 is nearby to well 1669 and shows the same trend as 1669, 1411 has a max depth of 830 ft, just under 1000ft marker
+
+<br>
+
+```{r, message= FALSE, warning = FALSE, echo = FALSE, out.width = "100%"}
+plot_well(usgs_time, 1411)
+```
+
+
+
+
+<br>
+<br>
+<br>
+<br>
+<br>
+
+# **Functions**
+
+***
+
+
+```{r, message= FALSE, warning = FALSE, eval=FALSE, echo=TRUE}
+# PLOTS A BUFFER AROUND SPECIFIED WELL AND LOCATES OTHER WELLS INSIDE THE BUFFER AREA
+buffer_fun = function(df, well, buff, state) {
+  buffer = st_buffer(df[well,], buff)
+  near1 = st_intersection(df[,], buffer) %>% filter(measurement_dist >= 10)
+  
+  plot = ggplot() + 
+    geom_sf(data = state) +
+    geom_sf(data = buffer, fill = NA) + 
+    geom_sf(data = near1, col = "red", size = .5) + 
+    labs(caption = paste(nrow(near1), 'wells')) +
+    theme_void() +
+    theme(plot.caption = element_text(size = 22, face = "bold", hjust = 0.5))
+  print(plot)
+  return(near1)
+}
+
+# RETURNS DATAFRAME OF WELLS IN DTW RANGE (MIN - MAX)
+dtw_range = function(df, min, max) {
+  df = df %>% filter(dtw <= max, dtw >= min) %>% 
+    mutate(sd = sd(dtw)) %>% 
+    arrange(desc(date))
+  return(df)
+}
+
+
+# PLOTS AN INDIVIDUAL WELL BY WELL ID (DTW TIME SERIES)
+plot_well = function(df_time, id) {
+  df_time = usgs_time
+  wells = df_time %>% filter(wellid == paste('well', id))
+  plot = ggplot(data = wells, aes(x = date, y = dtw_ft)) +
+    geom_line(aes(y = dtw_ft, col = wellid), size = 2) +
+    scale_y_reverse() +
+    labs(title = paste('Well', id),
+         caption = paste('Min depth:', min(wells$dtw_ft), '\nMax depth:',
+                          max(wells$dtw_ft), '\nNumber of measurements:',
+                          wells$measurement_dist),
+         x = 'Year',
+         y = 'DTW (ft)') + 
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
+          axis.text.x = element_text(color="black", size=14), 
+          axis.text.y = element_text(color="black", size=14), 
+          axis.title.x = element_text(face = 'bold', color="black", size=16), 
+          axis.title.y = element_text(face = 'bold', color="black", size=16),
+          plot.caption = element_text(face = 'bold', color = 'black', size = 14),
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1),
+          legend.position = 'none') 
+  print(plot)
+}
+
+# PLOTS MULTIPLE WELLS IN DTW RANGE
+multi_well_plot = function(df, df_time, min, max) {
+  df = df %>% filter(dtw <= max, dtw >= min) %>% 
+    arrange(desc(date))
+  df_time = df_time %>% filter(wellid %in% df$wellid)
+  plot1 = ggplot(data = df_time, aes(x = date, y = dtw_ft)) +
+    geom_line(aes(y = dtw_ft, col = wellid), size = 1) +
+    scale_y_reverse() +
+    labs(x = 'Year',
+         y = 'DTW (ft)') + 
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5), 
+          axis.text.x = element_text(color="black", size=14), 
+          axis.text.y = element_text(color="black", size=14), 
+          axis.title.x = element_text(face="bold", color="black", size=16), 
+          axis.title.y = element_text(face="bold", color="black", size=16), 
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1),
+          legend.position = 'none')
+  print(plot1)
+  return(df)
+}
+
+
+# PLOTS WELLS DTW WITHIN A SPECIFIED RANGE, COLOR GRADIENT BY DEPTH, RETURNS CORRESPONDING DATA FRAME
+map_dtw = function(state, df, min, max) {
+  df = df %>% filter(dtw <= max, dtw >= min) %>% 
+    mutate(sd = sd(dtw)) %>% 
+    arrange(dtw)
+  plot1 = ggplot() + 
+    geom_sf(data = state, size = 1, col = 'black') +
+    geom_sf(data = df, aes(col = dtw), size = 1.5) + 
+    theme_void() +
+    theme(plot.title = element_text(face = "bold", color = "black", size = 18),
+          plot.subtitle = element_text(size = 12),
+          plot.caption = element_text(face = 'bold', size = 12), 
+          legend.title = element_text(color="black", size=14), 
+          legend.text = element_text(color="black", size=14)) +
+    scale_colour_gradient() +
+    labs(title = paste('DTW', min, '-', max, 'ft'),
+         fill = 'Number of wells', 
+         col = 'Depth to Water (ft)')
+  print(plot1)
+  return(df)
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
