@@ -103,7 +103,7 @@ az_nwis_clean <- az_nwis_clip %>%
          year_dist = n_distinct(year)) 
 
 az_nwis_all <- az_nwis_clean %>% 
-  select(agency_cd, site_id, date, dtw_ft = dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>%
+  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>%
   mutate(source = "lb_national") 
   #slice(n=1)
 

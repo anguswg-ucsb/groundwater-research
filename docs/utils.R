@@ -33,14 +33,14 @@ plot_pip = function(data, text1){
 plot_trends = function(df_time, thresh, measurements, state) {
   df_time = df_time %>% 
     filter(measurement_dist >= measurements) %>%
-    mutate(sd = sd(dtw_ft))
+    mutate(sd = sd(dtw))
   flat = df_time %>% filter(sd <= thresh, measurement_dist >= measurements) %>% 
     mutate(trend = 'flat')
   osc = df_time %>% filter(sd > thresh, measurement_dist >= measurements) %>% 
     mutate(trend = 'oscilate')
   well_trends = full_join(osc, flat)
-  plot1 = ggplot(data = well_trends, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = site_id)) +
+  plot1 = ggplot(data = well_trends, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = site_id)) +
     scale_y_reverse() +
     labs(title = 'All wells (DTW vs. Time)',
          x = 'Year',
@@ -52,8 +52,8 @@ plot_trends = function(df_time, thresh, measurements, state) {
           axis.title.x = element_text(face="bold", color="black", size=16), 
           axis.title.y = element_text(face="bold", color="black", size=16)) + 
     theme(legend.position = "none")
-  plot2 = ggplot(data = osc, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = site_id)) +
+  plot2 = ggplot(data = osc, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = site_id)) +
     scale_y_reverse() +
     labs(title = 'Oscilating wells (DTW vs. time)',
          x = 'Year',
@@ -65,8 +65,8 @@ plot_trends = function(df_time, thresh, measurements, state) {
           axis.title.x = element_text(face="bold", color="black", size=16), 
           axis.title.y = element_text(face="bold", color="black", size=16)) + 
     theme(legend.position = "none")
-  plot3 = ggplot(data = flat, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = site_id)) +
+  plot3 = ggplot(data = flat, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = site_id)) +
     scale_y_reverse() +
     labs(title = 'Flat wells (DTW vs. time)', 
          x = 'Year',
@@ -100,10 +100,10 @@ plot_trends = function(df_time, thresh, measurements, state) {
 
 
 plot_dtw = function(df_time, min, max) {
-  df_time = df_time %>% filter(dtw_ft <= max, dtw_ft >= min) %>% 
-    mutate(sd = sd(dtw_ft))
-  plot1 = ggplot(data = df_time, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = wellid), size = 1) +
+  df_time = df_time %>% filter(dtw <= max, dtw >= min) %>% 
+    mutate(sd = sd(dtw))
+  plot1 = ggplot(data = df_time, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 1) +
     scale_y_reverse() +
     labs(title = paste('Depth to water', min, '-', max, 'ft'),
          x = 'Year',
@@ -247,15 +247,37 @@ dtw_range = function(df, min, max) {
 
 ### PLOT AN INDIVIDUAL WELL BY WELL ID (DTW TIME SERIES)
 plot_well = function(df_time, id) {
-  df_time = usgs_time
   wells = df_time %>% filter(wellid == paste('well', id))
-  plot = ggplot(data = wells, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = wellid), size = 2) +
+  plot = ggplot(data = wells, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 2) +
     scale_y_reverse() +
     labs(title = paste('Well', id),
-         caption = paste('Min depth:', min(wells$dtw_ft), '\nMax depth:',
-                          max(wells$dtw_ft), '\nNumber of measurements:',
+         caption = paste('Min depth:', min(wells$dtw), '\nMax depth:',
+                          max(wells$dtw), '\nNumber of measurements:',
                           wells$measurement_dist),
+         x = 'Year',
+         y = 'DTW (ft)') + 
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
+          axis.text.x = element_text(color="black", size=14), 
+          axis.text.y = element_text(color="black", size=14), 
+          axis.title.x = element_text(face = 'bold', color="black", size=16), 
+          axis.title.y = element_text(face = 'bold', color="black", size=16),
+          plot.caption = element_text(face = 'bold', color = 'black', size = 14),
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1),
+          legend.position = 'none') 
+  print(plot)
+}
+
+### PLOT AN INDIVIDUAL WELL BY WELL ID (DTW TIME SERIES)
+plot_well_state = function(df_time, id) {
+  df_time = usgs_time
+  wells = df_time %>% filter(wellid == paste('well', id))
+  plot = ggplot(data = wells, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 2) +
+    scale_y_reverse() +
+    labs(title = paste('Well', id),
          x = 'Year',
          y = 'DTW (ft)') + 
     theme_bw() +
@@ -276,8 +298,8 @@ multi_well_plot = function(df, df_time, min, max) {
   df = df %>% filter(dtw <= max, dtw >= min) %>% 
     arrange(desc(date))
   df_time = df_time %>% filter(wellid %in% df$wellid)
-  plot1 = ggplot(data = df_time, aes(x = date, y = dtw_ft)) +
-    geom_line(aes(y = dtw_ft, col = wellid), size = 1) +
+  plot1 = ggplot(data = df_time, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 1) +
     scale_y_reverse() +
     labs(x = 'Year',
          y = 'DTW (ft)') + 

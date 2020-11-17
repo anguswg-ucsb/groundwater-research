@@ -3,7 +3,6 @@
 library(tidyverse)
 library(sf)
 library(USAboundaries)
-library(ggthemes)
 library(cowplot)
 library(sp)
 library(leaflet)
@@ -14,8 +13,7 @@ source("docs/utils.R")
 ### USGS SPATIAL + TIMESERIES DATAFRAMES 
 
 # Arizona state shape (CRS = 5070)
-az = us_states() %>% 
-  filter(name == 'Arizona') %>% 
+az = az_shp_4269 %>%  
   st_transform(5070)
 
 # add 'well #' for each unique well
@@ -44,16 +42,17 @@ thresh = usgs_time %>%
   mutate(measure_period = year - lag(year)) %>% 
   filter(any(measure_period > 5))
 usgs_time = usgs_time %>% filter(!wellid %in% thresh$wellid, measurement_dist >= 10) %>% 
-  mutate(measure_period = year - lag(year))
+  mutate(measure_period = year - lag(year))%>% 
+  rename(dtw = dtw_ft)
 usgs_spatial = usgs_spatial %>% 
   filter(!wellid %in% thresh$wellid) %>% 
-  filter(measurement_dist >= 10)
+  filter(measurement_dist >= 10) 
 
 ### STATE SPATIAL + TIMESERIES DATAFRAMES
 
 # add 'well #' for each unique well
 state = adwr_unique_sites %>% 
-  filter(date > 1960-01-01, date < as.Date.character('1990-01-01'))
+  filter(date > 1960-01-01, date < as.Date.character('2000-01-01'))
 state$wellid = paste("well", 1:nrow(state))
 
 # remove wells located at same lat/long but have different well ID
@@ -71,87 +70,69 @@ state_time = adwr_all %>%
 state_time = left_join(state_time, select(state, site_id, wellid), by = "site_id") 
 state_time = state_time %>% filter(wellid %in% state_spatial$wellid)
 
+thresh_state = state_time %>% 
+  group_by(wellid) %>% 
+  filter(measurement_dist >= 10) %>% 
+  mutate(measure_period = year - lag(year)) %>% 
+  filter(any(measure_period > 5))
+state_time = state_time %>% filter(!wellid %in% thresh_state$wellid, measurement_dist >= 10) %>% 
+  mutate(measure_period = year - lag(year)) 
+state_spatial = state_spatial %>% 
+  filter(!wellid %in% thresh_state$wellid) %>% 
+  filter(measurement_dist >= 10)
+
 
 ### TRENDS
 getJenksBreaks(trends$sd, 4)
 
-plot_trends(usgs_time, 30, 15, az)
+
 
 
 ### DTW RANGES (0 -100, 100 - 200, 200 - 300)
 pal = RColorBrewer::brewer.pal(9,"YlOrRd")
 
-
-a = map_dtw(az, usgs_spatial, 500, 1000)
-b = map_dtw(az, usgs_spatial, 1000, 1800)
-
-
-h = plot_dtw(usgs_time, 500, 1000)
-i = plot_dtw(usgs_time, 1000, 1500)
-
-
-
-### BUFFER FUNCTION
-
-buffer_fun1(usgs_spatial, state_spatial, b[5,], 100000, az)
-
-buffer_fun(usgs_spatial, b[1,], 50000, az)
-
-x = plot_dtw(usgs_time, 4, 20, 65)
-
-
-
+multi_well_plot(state_spatial, state_time, 500, 600)
 # MEASUREMENT THRESHOLD FUNCTION
 
 
-# ACTIVE MANAGEMENT AREAS
-
+### ACTIVE MANAGEMENT AREAS
 # read in AMA shapefiles
 ama = read_sf('data/Act_Man_Areas.shp') %>% 
   st_transform(5070) %>% 
   st_cast("MULTIPOLYGON")
-
 ama2 = ama %>% st_transform(4326)
 
+### AQUIFERS
+aquifer = read_sf('data/shps/us_aquifers.shp') %>% 
+  st_transform(5070) %>% 
+  st_cast("MULTIPOLYGON")
 
-map_ama = function(df1, df2, ama, state) {
-  i = st_intersection(df1, df2[ama,])
-  
-  plot1 = ggplot() + 
-    geom_sf(data = state) +
-    geom_sf(data = df2, fill = NA) + 
-    geom_sf(data = i, aes(col = dtw), size = .5) + 
-    scale_colour_gradient(low = 'lightblue', high = 'blue') +
-    labs(caption = paste(nrow(i), 'wells')) +
-    theme_void() +
-    theme(plot.caption = element_text(size = 22, face = "bold", hjust = 0.5))
-  plot2 = ggplot(df2[1:8, ]) +
-    geom_sf(data = state) +
-    geom_sf(data = df2, aes(fill = OBJECTID)) +
-    geom_sf_label(aes(label = OBJECTID))
-  plot3 = plot_grid(plot2, plot1, nrow = 1)
-  print(plot3)
-  return(i)
-}
+aquifer2 = aquifer %>% st_transform(4326)
 
-  
+box = az %>% st_transform(4326) %>% 
+  st_bbox() %>% 
+  st_as_sfc()
+temp = st_intersects(aquifer2, box)
 
+aquifer2 = aquifer2[which(lengths(temp) != 0), ]
+
+plot(st_geometry(filt_data))
+plot(box, add = TRUE)
 
 ### LEAFLET MAPS
-
+# USGS leaflet
 x = usgs_spatial %>% st_transform(4326)
 
-ama3 = ama %>% st_transform(4326)
 RColorBrewer::display.brewer.all(n=10, exact.n=FALSE)
+col1 = RColorBrewer::brewer.pal(9,"Blues")
+col2 = RColorBrewer::brewer.pal(9,"YlOrRd")
+col3 = RColorBrewer::brewer.pal(9,"YlGnBu")
+col4 = RColorBrewer::brewer.pal(9,"Spectral")
 
-pal1 = RColorBrewer::brewer.pal(9,"Blues")
-pal2 = RColorBrewer::brewer.pal(9,"YlOrRd")
-pal3 = RColorBrewer::brewer.pal(9,"YlGnBu")
-
-pals1 = colorNumeric(pal1, domain = x$dtw)
-pals2 = colorNumeric(pal2, domain = x$dtw)
-pals3 = colorBin(pal3, domain = 1:8)
-
+pals1 = colorNumeric(col1, domain = x$dtw)
+pals2 = colorNumeric(col2, domain = x$dtw)
+pals3 = colorBin(col3, domain = 1:8)
+pals4 = colorFactor(col4, domain = aquifer2$AQ_NAME)
 
 a = dtw_range(x, 0, 100) %>% select(wellid, date, dtw, measurement_dist)
 b = dtw_range(x, 100, 200) %>% select(wellid, date, dtw, measurement_dist)
@@ -164,10 +145,31 @@ h = dtw_range(x, 700, 800) %>% select(wellid, date, dtw, measurement_dist)
 i = dtw_range(x, 800, 900) %>% select(wellid, date, dtw, measurement_dist)
 j = dtw_range(x, 900, 1500) %>% select(wellid, date, dtw, measurement_dist)
 
+# State leaflet 
+z = state_spatial %>% st_transform(4326)
 
-multi_well(x, usgs_time, 600, 700)
+aa = dtw_range(z, 0, 100) %>% select(wellid, date, dtw, measurement_dist)
+bb = dtw_range(z, 100, 200) %>% select(wellid, date, dtw, measurement_dist)
+cc = dtw_range(z, 200, 300) %>% select(wellid, date, dtw, measurement_dist)
+dd = dtw_range(z, 300, 400) %>% select(wellid, date, dtw, measurement_dist)
+ee = dtw_range(z, 400, 500) %>% select(wellid, date, dtw, measurement_dist)
+ff = dtw_range(z, 500, 600) %>% select(wellid, date, dtw, measurement_dist)
+gg = dtw_range(z, 600, 700) %>% select(wellid, date, dtw, measurement_dist)
+hh = dtw_range(z, 700, 800) %>% select(wellid, date, dtw, measurement_dist)
+ii = dtw_range(z, 800, 900) %>% select(wellid, date, dtw, measurement_dist)
+jj = dtw_range(z, 900, 1500) %>% select(wellid, date, dtw, measurement_dist)
+
+
+
 leaflet() %>% 
   addProviderTiles(providers$CartoDB.Positron, group = 'Tiles') %>% 
+  addPolygons(data = ama2,
+              fillColor  = ~pals3(OBJECTID), fillOpacity = 0.3,
+              color = 'black',
+              label = ~MAP_LABEL, group = 'AMA') %>%
+  addPolygons(data = aquifer2, fillColor = ~pals4(AQ_NAME), fillOpacity = 0.3,
+              color = 'black',
+              label = ~AQ_NAME, group = 'Aquifer') %>%
   addCircleMarkers(data = a, #clusterOptions = markerClusterOptions(interactive()),
                    color = ~pals2(dtw), fillOpacity = .8,
                    stroke = FALSE,
@@ -218,42 +220,157 @@ leaflet() %>%
                    stroke = FALSE,
                    popup = leafpop::popupTable(j, feature.id = FALSE,
                                                row.numbers = FALSE), group = '900 > ft') %>%
+  addCircleMarkers(data = aa, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(aa, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '0 - 100 ft') %>%
+  addCircleMarkers(data = bb, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1,
+                   fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(bb, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '100 - 200 ft') %>%
+  addCircleMarkers(data = cc, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1,
+                   fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(cc, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '200 - 300 ft') %>%
+  addCircleMarkers(data = dd, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(dd, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '300 - 400 ft') %>%
+  addCircleMarkers(data = ee, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(ee, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '400 - 500 ft') %>%
+  addCircleMarkers(data = ff, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(ff, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '500 - 600 ft') %>%
+  addCircleMarkers(data = gg, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(gg, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '600 - 700 ft') %>%
+  addCircleMarkers(data = ii, #clusterOptions = markerClusterOptions(interactive()),
+                   color = 'black', fillColor = ~pals2(dtw), opacity = 1, fillOpacity = .8,
+                   stroke = TRUE,
+                   popup = leafpop::popupTable(ii, feature.id = FALSE,
+                                               row.numbers = FALSE), group = '800 - 900 ft') %>%
+  addLayersControl(overlayGroups = c('0 - 100 ft', '100 - 200 ft', '200 - 300 ft',
+                                     '300 - 400 ft', '400 - 500 ft',
+                                     '500 - 600 ft', '600 - 700 ft',
+                                     '700 - 800 ft', '800 - 900 ft', '900 > ft', 'AMA', 'Aquifer'),
+                   baseGroups = c("Tiles"))
+
+plot(aquifer$geometry)
+
+# 
+# 
+# leaflet() %>% 
+#   addProviderTiles(providers$CartoDB.Positron, group = 'Tiles') %>% 
+#   addCircleMarkers(data = aa, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(aa, feature.id = FALSE, 
+#                                                row.numbers = FALSE), group = '0 - 100 ft') %>% 
+#   addCircleMarkers(data = bb, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(bb, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '100 - 200 ft') %>% 
+#   addCircleMarkers(data = cc, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(cc, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '200 - 300 ft') %>%
+#   addCircleMarkers(data = dd, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(dd, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '300 - 400 ft') %>% 
+#   addCircleMarkers(data = ee, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(ee, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '400 - 500 ft') %>% 
+#   addCircleMarkers(data = ff, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(ff, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '500 - 600 ft') %>%
+#   addCircleMarkers(data = gg, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(gg, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '600 - 700 ft') %>%
+#   addCircleMarkers(data = ii, #clusterOptions = markerClusterOptions(interactive()),
+#                    color = ~pals2(dtw), fillOpacity = .8,
+#                    stroke = FALSE,
+#                    popup = leafpop::popupTable(ii, feature.id = FALSE,
+#                                                row.numbers = FALSE), group = '800 - 900 ft') %>% 
+#   addPolygons(data = ama2,
+#               fillColor  = ~pals3(OBJECTID), fillOpacity = 0.4,
+#               color = 'black',
+#               label = ~MAP_LABEL, group = 'AMA') %>%
+#   addLayersControl(overlayGroups = c('0 - 100 ft', '100 - 200 ft',
+#                                      '200 - 300 ft',
+#                                      '300 - 400 ft',
+#                                      '400 - 500 ft',
+#                                      '500 - 600 ft',
+#                                      '600 - 700 ft',
+#                                      '800 - 900 ft', 'AMA'), baseGroups = c("Tiles"))
+
+  
+  
+  # addCircleMarkers(data = hh, #clusterOptions = markerClusterOptions(interactive()),
+  #                  color = ~pals2(dtw), fillOpacity = .8,
+  #                  stroke = FALSE,
+  #                  popup = leafpop::popupTable(hh, feature.id = FALSE,
+  #                                              row.numbers = FALSE), group = '700 - 800 ft')
+
+  # addCircleMarkers(data = jj, #clusterOptions = markerClusterOptions(interactive()),
+  #                  color = ~pals2(dtw), fillOpacity = .8,
+  #                  stroke = FALSE,
+  #                  popup = leafpop::popupTable(jj, feature.id = FALSE,
+  #                                              row.numbers = FALSE), group = '900 > ft') %>%
   # addCircleMarkers(data = x, #clusterOptions = markerClusterOptions(interactive()),
   #                  color = ~pals2(dtw), fillOpacity = .8,
   #                  stroke = FALSE,
   #                  popup = leafpop::popupTable(st_drop_geometry(x[,c(4, 7, 8, 13)]),
   #                                              feature.id = FALSE,
   #                                              row.numbers = FALSE), group = 'All') %>%
-  addPolygons(data = ama3,
-              fillColor  = ~pals3(OBJECTID), fillOpacity = 0.4,
-              color = 'black',
-              label = ~MAP_LABEL, group = 'AMA') %>%
-  addLayersControl(overlayGroups = c('0 - 100 ft', '100 - 200 ft', '200 - 300 ft',
-                                     '300 - 400 ft', '400 - 500 ft',
-                                     '500 - 600 ft', '600 - 700 ft',
-                                     '700 - 800 ft', '800 - 900 ft', '900 > ft', 'AMA'),
-                   baseGroups = c("Tiles"))
-
-ggplot(data = well, aes(x = date, y = dtw_ft)) +
-  geom_line(aes(y = dtw_ft, col = wellid), size = 1) +
-  scale_y_reverse() +
-  labs(title = paste('Depth to water: well', id),
-       # subtitle = min(wells$dtw_ft), '-', max(wells$dtw_ft),
-       x = 'Year',
-       y = 'DTW (ft)') + 
-  theme_bw() +
-  theme(plot.title = element_text(face = 'bold', color = 'black', size = 20),
-        axis.text.x = element_text(face = 'bold', color="black", size=14), 
-        axis.text.y = element_text(face = 'bold', color="black", size=14), 
-        axis.title.x = element_text(face="bold", color="black", size=16), 
-        axis.title.y = element_text(face="bold", color="black", size=16), 
-        legend.position = 'none')
-
-
-
-plot_well(usgs_time, 3450)
-tmppp = buffer_fun(usgs_spatial, 575, 10000, az)
 usgs_time %>% filter(wellid == 'well 24400')
+
+plot_well(state_time, 5550)
+state_time %>% filter(wellid == 'well 7359') %>% arrange(desc(dtw))
+
+yams = state_time %>%  filter(wellid %in% aa$wellid)
+multi_well_plot(state_spatial, yams, 0, 1000)
+
+bams = state_time %>%  filter(wellid %in% bb$wellid)
+multi_well_plot(state_spatial, bams, 0, 1000)
+
+# State 300-400ft wells 
+three_four = state_time %>%  filter(wellid %in% dd$wellid)
+multi_well_plot(state_spatial, three_four, 0, 1000)
+
+# State 400-500ft wells 
+four_five = state_time %>%  filter(wellid %in% ee$wellid)
+multi_well_plot(state_spatial, four_five, 0, 1000)
+
+# State 500-600ft wells 
+five_six = state_time %>%  filter(wellid %in% ff$wellid)
+multi_well_plot(state_spatial, five_six, 0, 1000)
+
+# State 400-500ft wells 
+six_sev = state_time %>%  filter(wellid %in% gg$wellid)
+multi_well_plot(state_spatial, six_sev, 0, 1000)
 
 # pheonix
 plot_well(usgs_time, 5284)
@@ -278,22 +395,14 @@ multi_well_plot(usgs_spatial, usgs_time, 700, 800)
 
 multi_well_plot(usgs_spatial, usgs_time, 900, 1400)
 
-#for (i in ama2) {
-#  tmp = st_intersection(x, ama2[i,])
-#}
-
-#tmp = tmp %>% group_by(OBJECTID) 
 
 
-#ama4 = ama3 %>% st_join(tmp, by = 'OBJECTID')
 
+### AQUIFERS
 
-                   
-
-map_dtw(az, usgs_spatial, 500, 600)
-
-
-plot_well(usgs_time, 2)
+aquifer = read_sf('data/shps/us_aquifers.shp') %>% 
+  st_transform(5070) %>% 
+  st_cast("MULTIPOLYGON")
 
 
 
