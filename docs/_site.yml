@@ -1,0 +1,12 @@
+name: "Angus Watters"
+output_dir: '.'
+navbar:
+  title: "USGS Groundwater"
+  left:
+    - text: "Home"
+      href: gw_temp.html
+output:
+  mikedown::ucsb:
+    toc: TRUE
+    number_sections: FALSE
+    code_folding: "hide"
