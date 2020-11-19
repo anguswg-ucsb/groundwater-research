@@ -250,7 +250,7 @@ plot_well = function(df_time, id) {
   wells = df_time %>% filter(wellid == paste('well', id))
   plot = ggplot(data = wells, aes(x = date, y = dtw)) +
     geom_line(aes(y = dtw, col = wellid), size = 2) +
-    scale_y_reverse() +
+    ylim(max(wells$dtw) + 100, 0) +
     labs(title = paste('Well', id),
          caption = paste('Min depth:', min(wells$dtw), '\nMax depth:',
                           max(wells$dtw), '\nNumber of measurements:',

@@ -4,7 +4,11 @@ navbar:
   title: "USGS Groundwater"
   left:
     - text: "Home"
-      href: gw_temp.html
+      href: index.html
+    - text: "Arizona"
+      href: gw_tmp.html
+    - text: "California"
+      href: ca_gw.html
 output:
   mikedown::ucsb:
     toc: TRUE

@@ -42,8 +42,7 @@ thresh = usgs_time %>%
   mutate(measure_period = year - lag(year)) %>% 
   filter(any(measure_period > 5))
 usgs_time = usgs_time %>% filter(!wellid %in% thresh$wellid, measurement_dist >= 10) %>% 
-  mutate(measure_period = year - lag(year))%>% 
-  rename(dtw = dtw_ft)
+  mutate(measure_period = year - lag(year))
 usgs_spatial = usgs_spatial %>% 
   filter(!wellid %in% thresh$wellid) %>% 
   filter(measurement_dist >= 10) 
@@ -54,6 +53,7 @@ usgs_spatial = usgs_spatial %>%
 state = adwr_unique_sites %>% 
   filter(date > 1960-01-01, date < as.Date.character('2000-01-01'))
 state$wellid = paste("well", 1:nrow(state))
+
 
 # remove wells located at same lat/long but have different well ID
 state_spatial = state %>% 
@@ -116,8 +116,7 @@ temp = st_intersects(aquifer2, box)
 
 aquifer2 = aquifer2[which(lengths(temp) != 0), ]
 
-plot(st_geometry(filt_data))
-plot(box, add = TRUE)
+
 
 ### LEAFLET MAPS
 # USGS leaflet
@@ -268,8 +267,34 @@ leaflet() %>%
                                      '700 - 800 ft', '800 - 900 ft', '900 > ft', 'AMA', 'Aquifer'),
                    baseGroups = c("Tiles"))
 
-plot(aquifer$geometry)
+# 900 - 900 in CO sandstone aq
+# state
+plot_well(state_time, 5550)
+plot_well(state_time, 2109)
+plot_well(state_time, 5550)
 
+# USGS
+plot_well(usgs_time, 1)
+plot_well(usgs_time, 456)
+plot_well(usgs_time, 1226)
+
+lol = usgs_time %>% filter(wellid == 'well 3450')
+
+ggplot(data = lol, aes(x = date, y = dtw)) +
+  geom_line(aes(y = dtw, col = wellid), size = 2) +
+  ylim((max(lol$dtw) + 200), 0) +
+  labs(x = 'Year',
+       y = 'DTW (ft)') + 
+  theme_bw() +
+  theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
+        axis.text.x = element_text(color="black", size=14), 
+        axis.text.y = element_text(color="black", size=14), 
+        axis.title.x = element_text(face = 'bold', color="black", size=16), 
+        axis.title.y = element_text(face = 'bold', color="black", size=16),
+        plot.caption = element_text(face = 'bold', color = 'black', size = 14),
+        panel.grid.major = element_line(colour = "#808080"),
+        panel.grid.minor = element_line(colour = "#808080", size = 1),
+        legend.position = 'none') 
 # 
 # 
 # leaflet() %>% 

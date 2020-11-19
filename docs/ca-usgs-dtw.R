@@ -28,14 +28,14 @@ ca_site <- readNWISdata(stateCd="California", #for Arizona
 # Dtw
 ca_nwis_dtw = readNWISdata(stateCd="California", #for Arizona
                            service="gwlevels", #pull all groundwater levels
-                           startDT="2010-01-01", #start as early as possible
+                           startDT="2000-01-01", #start as early as possible
                            endDT="2020-01-01") %>% #start as current as possible
   renameNWISColumns() %>%  #rename columns so they are universal across all pulls
   select(agency_cd, site_no, lev_dt, lev_va) #only keep relevent columns %>% 
 
 
 #oin
-ca_nwis_join <- left_join(ca_nwis_dtw, usgs, by = "site_no") %>% #join site information to each dtw site row 
+ca_nwis_join <- left_join(ca_nwis_dtw, ca_site, by = "site_no") %>% #join site information to each dtw site row 
   dplyr::select(agency_cd.x, site_no, dec_lat_va, dec_long_va, lev_dt, lev_va) %>% 
   dplyr::rename(agency_cd = agency_cd.x, 
                 site_id = site_no, 
@@ -100,13 +100,13 @@ ca_nwis_clean <- ca_nwis_clip %>%
          year_dist = n_distinct(year)) 
 
 ca_nwis_all <- ca_nwis_clean %>% 
-  select(agency_cd, site_id, date, dtw_ft = dtw, date_min, date_max, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>%
+  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>%
   mutate(source = "lb_national") 
 #slice(n=1)
 
 
 ca_nwis_unique_sites <- ca_nwis_clean %>% 
-  select(agency_cd, site_id, date, dtw, date_min, date_max, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>% 
+  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>% 
   mutate(source = "lb_national") %>% 
   distinct(site_id, .keep_all = TRUE) %>% 
   mutate(id = 'US')
