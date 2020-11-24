@@ -26,8 +26,8 @@ az_site <- readNWISdata(stateCd="Arizona", #for Arizona
 # Dtw
 az_nwis_dtw = readNWISdata(stateCd="Arizona", #for Arizona
                        service="gwlevels", #pull all groundwater levels
-                       startDT="1960-01-01", #start as early as possible
-                       endDT="2000-01-01") %>% #start as current as possible
+                       startDT="1990-01-01", #start as early as possible
+                       endDT="2010-01-01") %>% #start as current as possible
   renameNWISColumns() %>%  #rename columns so they are universal across all pulls
   select(agency_cd, site_no, lev_dt, lev_va) #only keep relevent columns %>% 
   
@@ -103,14 +103,14 @@ az_nwis_clean <- az_nwis_clip %>%
          year_dist = n_distinct(year)) 
 
 az_nwis_all <- az_nwis_clean %>% 
-  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>%
-  mutate(source = "lb_national") 
-  #slice(n=1)
+  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long) %>%
+  mutate(source = "lb_national", agency_cd = recode(agency_cd, 'AZ014' = 'ADWR'))
+
 
 
 az_nwis_unique_sites <- az_nwis_clean %>% 
-  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long, measure_date) %>% 
-  mutate(source = "lb_national") %>% 
+  select(agency_cd, site_id, date, dtw, date_min, date_max, year, measurement_dist, year_dist, lat_nad83 = lat, long_nad83 = long) %>% 
+  mutate(source = "lb_national", agency_cd = recode(agency_cd, 'AZ014' = 'ADWR')) %>% 
   arrange(desc(date)) %>% 
   distinct(site_id, .keep_all = TRUE) %>% 
   mutate(id = 'US')
