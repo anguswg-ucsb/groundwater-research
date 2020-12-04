@@ -11,7 +11,7 @@ library(janitor)
 library(lubridate)
 
 # Arizona Dept Water Resource dtw data
-adwr_dtw= read_xlsx('../data/gwis_dtw.xlsx') %>% # read in AZ dtw data
+adwr_dtw= read_xlsx('data/gwis_dtw.xlsx') %>% # read in AZ dtw data
   clean_names()  %>% 
   rename(site_well_site_id = wlwa_site_well_site_id) # rename columns for compatibility
 
@@ -20,7 +20,7 @@ adwr_dtw= read_xlsx('../data/gwis_dtw.xlsx') %>% # read in AZ dtw data
          #dtw_ft= WLWA_DEPTH_TO_WATER) # rename columns for ease of use
 
 # Arizona Dept Water Resource well sites
-adwr_site = read_xlsx('../data/gwis_sites.xlsx') %>%  # read in AZ site location data
+adwr_site = read_xlsx('data/gwis_sites.xlsx') %>%  # read in AZ site location data
   clean_names()
   #rename(site_id = SITE_WELL_SITE_ID, lat = SITE_LATITUDE_DECIMAL, lon = SITE_LONGIT_DECIMAL, sisrc_code = SITE_SISRC_CODE)
   #st_as_sf(coords=c('lon', 'lat'), crs = 4269) %>% # adds geometries to joined data and CRS of 4269 # selects needed columns
@@ -87,23 +87,18 @@ az_join_deb_all = az_state_clean_clip %>%
   mutate(date_min = min(dec_date), 
          date_max = max(dec_date),
          measurement_dist = n_distinct(dtw_ft), #distinct well measurements by well
-         year_dist = n_distinct(year)) 
+         year_dist = n_distinct(year))
 
 adwr_all = az_join_deb_all %>% 
-  select(agency_cd, site_id, date, dtw = dtw_ft, date_min, date_max, measurement_dist, year_dist, lat_nad83, long_nad83, measure_date, year) %>% 
-  mutate(source = "lb_state") 
+  select(agency_cd, site_id, date, dtw = dtw_ft, date_min, date_max, year, measurement_dist, year_dist, lat_nad83, long_nad83) %>% 
+  mutate(source = "lb_state")
 
 adwr_unique_sites = az_join_deb_all %>% 
-  select(agency_cd, site_id, date, dtw = dtw_ft, date_min, date_max, measurement_dist, year_dist, lat_nad83, long_nad83, measure_date, year) %>% 
+  select(agency_cd, site_id, date, dtw = dtw_ft, date_min, date_max, year, measurement_dist, year_dist, lat_nad83, long_nad83) %>% 
   mutate(source = "lb_state") %>% 
   arrange(desc(date)) %>% 
   distinct(site_id, .keep_all = TRUE) %>% 
   mutate(id = 'AZ')
-
-
-
-
-
 
 
 

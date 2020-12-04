@@ -185,19 +185,35 @@ buffer_fun1 = function(df, df2, well, buff, state) {
 } 
 
 # BUFFER FUNCTION FOR 1 DATAFRAME INPUT
-buffer_fun = function(df, well, buff, state) {
-  buffer = st_buffer(df[well,], buff)
-  near1 = st_intersection(df[,], buffer) %>% filter(measurement_dist >= 10)
+# buffer_fun = function(df, well, buff, state) {
+#   buffer = st_buffer(df[well,], buff)
+#   near1 = st_intersection(df[,], buffer) %>% filter(measurement_dist >= 10)
+#   
+#   plot = ggplot() + 
+#     geom_sf(data = state) +
+#     geom_sf(data = buffer, fill = NA) + 
+#     geom_sf(data = near1, col = "red", size = .5) + 
+#     labs(caption = paste(nrow(near1), 'wells')) +
+#     theme_void() +
+#     theme(plot.caption = element_text(size = 22, face = "bold", hjust = 0.5))
+#   print(plot)
+#   return(near1)
+# }
+
+buffer_fun = function(df, source, buff, state) {
+  well = df %>% filter(wellid == paste('well', source))
+  buffer = st_buffer(df[well, 'wellid'], buff)
+  near = st_intersection(df[,], buffer)
   
   plot = ggplot() + 
     geom_sf(data = state) +
     geom_sf(data = buffer, fill = NA) + 
-    geom_sf(data = near1, col = "red", size = .5) + 
-    labs(caption = paste(nrow(near1), 'wells')) +
+    geom_sf(data = near, col = "red", size = .5) + 
+    labs(caption = paste(nrow(near), 'wells')) +
     theme_void() +
     theme(plot.caption = element_text(size = 22, face = "bold", hjust = 0.5))
   print(plot)
-  return(near1)
+  return(near)
 }
 #buffer_fun = function(df, well, buff, state) {
   #if(missing(df2)) {
@@ -246,61 +262,53 @@ dtw_range = function(df, min, max) {
 }
 
 ### PLOT AN INDIVIDUAL WELL BY WELL ID (DTW TIME SERIES)
-plot_well = function(df_time, id) {
-  wells = df_time %>% filter(wellid == paste('well', id))
-  plot = ggplot(data = wells, aes(x = date, y = dtw)) +
-    geom_line(aes(y = dtw, col = wellid), size = 2) +
-    ylim(max(wells$dtw) + 100, 0) +
-    labs(title = paste('Well', id),
-         caption = paste('Min depth:', min(wells$dtw), '\nMax depth:',
-                          max(wells$dtw), '\nNumber of measurements:',
-                          wells$measurement_dist),
-         x = 'Year',
-         y = 'DTW (ft)') + 
+plotWell = function(df_time, num) {
+  font = list(
+    family = 'Courier',
+    size = 15,
+    color = 'white')
+  label = list(
+    bgcolor = '#232F34',
+    bordercolor = 'transparent',
+    font = font)
+  well = df_time %>% filter(wellid == num)
+  gg = ggplot(data = well, aes(x = date, y = dtw)) +
+    geom_line(data = well, aes(y = dtw, col = wellid), size = 1) +
+    ylim(max(well$dtw) + 100, 0) +
+    labs(x = 'Year',
+         y = 'DTW (ft)',
+         col = 'Well') +  
     theme_bw() +
-    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5), 
           axis.text.x = element_text(color="black", size=14), 
           axis.text.y = element_text(color="black", size=14), 
-          axis.title.x = element_text(face = 'bold', color="black", size=16), 
-          axis.title.y = element_text(face = 'bold', color="black", size=16),
-          plot.caption = element_text(face = 'bold', color = 'black', size = 14),
+          axis.title.x = element_text(face="bold", color="black", size=16), 
+          axis.title.y = element_text(face="bold", color="black", size=16), 
           panel.grid.major = element_line(colour = "#808080"),
-          panel.grid.minor = element_line(colour = "#808080", size = 1),
-          legend.position = 'none') 
-  print(plot)
+          panel.grid.minor = element_line(colour = "#808080", size = 1))
+  plot = ggplotly(gg, tooltip = c('x', 'y', 'wellid')) %>%
+    style(hoverlabel = label) %>% 
+    layout(font = font, 
+           yaxis = list(fixedrange = TRUE)) %>% 
+    config(displayModeBar = FALSE)
+  plot
 }
 
-### PLOT AN INDIVIDUAL WELL BY WELL ID (DTW TIME SERIES)
-plot_well_state = function(df_time, id) {
-  df_time = usgs_time
-  wells = df_time %>% filter(wellid == paste('well', id))
-  plot = ggplot(data = wells, aes(x = date, y = dtw)) +
-    geom_line(aes(y = dtw, col = wellid), size = 2) +
-    scale_y_reverse() +
-    labs(title = paste('Well', id),
-         x = 'Year',
-         y = 'DTW (ft)') + 
-    theme_bw() +
-    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
-          axis.text.x = element_text(color="black", size=14), 
-          axis.text.y = element_text(color="black", size=14), 
-          axis.title.x = element_text(face = 'bold', color="black", size=16), 
-          axis.title.y = element_text(face = 'bold', color="black", size=16),
-          plot.caption = element_text(face = 'bold', color = 'black', size = 14),
-          panel.grid.major = element_line(colour = "#808080"),
-          panel.grid.minor = element_line(colour = "#808080", size = 1),
-          legend.position = 'none') 
-  print(plot)
-}
-
-# PLOT WELLS IN DTW RANGE
-multi_well_plot = function(df, df_time, min, max) {
-  df = df %>% filter(dtw <= max, dtw >= min) %>% 
+# PLOTS WELL DTW TIME SERIES WITHIN A RANGE (MIN, MAX)
+plotRange = function(df_time, min, max) {
+  font = list(
+    family = 'Courier',
+    size = 15,
+    color = 'white')
+  label = list(
+    bgcolor = '#232F34',
+    bordercolor = 'transparent',
+    font = font)
+  df_time = df_time %>% filter(dtw <= max, dtw >= min) %>% 
     arrange(desc(date))
-  df_time = df_time %>% filter(wellid %in% df$wellid)
-  plot1 = ggplot(data = df_time, aes(x = date, y = dtw)) +
+  gg = ggplot(data = df_time, aes(x = date, y = dtw)) +
     geom_line(aes(y = dtw, col = wellid), size = 1) +
-    scale_y_reverse() +
+    ylim(max(df_time$dtw) + 50, min(df_time$dtw)) +
     labs(x = 'Year',
          y = 'DTW (ft)') + 
     theme_bw() +
@@ -310,29 +318,119 @@ multi_well_plot = function(df, df_time, min, max) {
           axis.title.x = element_text(face="bold", color="black", size=16), 
           axis.title.y = element_text(face="bold", color="black", size=16), 
           panel.grid.major = element_line(colour = "#808080"),
-          panel.grid.minor = element_line(colour = "#808080", size = 1),
-          legend.position = 'none')
-  print(plot1)
-  return(df)
+          panel.grid.minor = element_line(colour = "#808080", size = 1))
+  plot = ggplotly(gg, tooltip = c('x', 'y', 'wellid')) %>%
+    style(hoverlabel = label) %>% 
+    layout(font = font, 
+           yaxis = list(fixedrange = TRUE)) %>% 
+    config(displayModeBar = FALSE)
+  plot
+  
 }
 
-### MAP WELLS IN AMA BY SPECIFIC AREA (1 - 8)
-map_ama = function(df1, df2, ama, state) {
-  i = st_intersection(df1, df2[ama,])
-  
-  plot1 = ggplot() + 
-    geom_sf(data = state) +
-    geom_sf(data = df2, fill = NA) + 
-    geom_sf(data = i, aes(col = dtw), size = .5) + 
-    scale_colour_gradient(guide=guide_colourbar(reverse = TRUE)) +
-    labs(caption = paste(nrow(i), 'wells')) +
-    theme_void() +
-    theme(plot.caption = element_text(size = 22, face = "bold", hjust = 0.5))
-  plot2 = ggplot(df2[1:8, ]) +
-    geom_sf(data = state) +
-    geom_sf(data = df2, aes(fill = OBJECTID)) +
-    geom_sf_label(aes(label = df2$OBJECTID))
-  plot3 = plot_grid(plot2, plot1, nrow = 1)
-  print(plot3)
-  return(i)
+# PLOTS WELL DTW TIME SERIES FROM DATAFRAME
+plotMultipleWells = function(df_time) {
+  font = list(
+    family = 'Courier',
+    size = 15,
+    color = 'white')
+   label = list(
+    bgcolor = '#232F34',
+    bordercolor = 'transparent',
+    font = font)
+
+  gg = ggplot(data = df_time, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 1) +
+    ylim(max(df_time$dtw) + 50, 0) +
+    labs(x = 'Year',
+         y = 'DTW (ft)',
+         col = 'Well') +  
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5), 
+          axis.text.x = element_text(color="black", size=14), 
+          axis.text.y = element_text(color="black", size=14), 
+          axis.title.x = element_text(face="bold", color="black", size=16), 
+          axis.title.y = element_text(face="bold", color="black", size=16), 
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1))
+  plot = ggplotly(gg, tooltip = c('x', 'y', 'wellid')) %>%
+    style(hoverlabel = label) %>% 
+    layout(font = font, 
+           yaxis = list(fixedrange = TRUE)) %>% 
+    config(displayModeBar = FALSE)
+  plot
 }
+
+# IDENTICAL FUNCTION TO plotMultipleWells() BUT WILL PLOT ABOVE ZERO ON THE Y-AXIS
+plotNegativeWells = function(df_time) {
+  font = list(
+    family = 'Courier',
+    size = 15,
+    color = 'white')
+  label = list(
+    bgcolor = '#232F34',
+    bordercolor = 'transparent',
+    font = font)
+  gg = ggplot(data = df_time, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = as.character(wellid)), size = 1) +
+    geom_hline(aes(yintercept = 0), size = 1) +
+    scale_y_reverse() +
+    labs(x = 'Year',
+         y = 'DTW (ft)',
+         col = 'Well') + 
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5), 
+          axis.text.x = element_text(color="black", size=14), 
+          axis.text.y = element_text(color="black", size=14), 
+          axis.title.x = element_text(face="bold", color="black", size=16), 
+          axis.title.y = element_text(face="bold", color="black", size=16), 
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1),
+          legend.title = element_text(colour="black", size=16, face="bold"),
+          legend.text = element_text(colour="black", size=10, face="bold"))
+  plot = ggplotly(gg, tooltip = c('x', 'y', 'wellid')) %>%
+    style(hoverlabel = label) %>% 
+    layout(font = font, 
+           yaxis = list(fixedrange = TRUE)) %>% 
+    config(displayModeBar = FALSE)
+  plot
+}
+
+# RETURNS A TIME SERIES PLOT OF WELLS WITHIN A BUFFER DISTANCE (km)
+plotBuffer = function(df, id, buffer) {
+  font = list(
+    family = 'Courier',
+    size = 15,
+    color = 'white')
+  label = list(
+    bgcolor = '#232F34',
+    bordercolor = 'transparent',
+    font = font)
+  well = df %>% filter(wellid == !!id)
+  buff = st_buffer(df[well, ], buffer)
+  nearby =st_intersection(df, buff)         
+  df_time = join_time %>% filter(time_span > 50, wellid %in% nearby$wellid) 
+  
+  gg = ggplot(data = df_time, aes(x = date, y = dtw)) +
+    geom_line(aes(y = dtw, col = wellid), size = 1) +
+    ylim(1000, 0) +
+    labs(x = 'Year',
+         y = 'DTW (ft)',
+         col = 'Well') +
+    theme_bw() +
+    theme(plot.title = element_text(face = 'bold',color = 'black', size = 18, hjust = 0.5),
+          axis.text.x = element_text(color="black", size=14),
+          axis.text.y = element_text(color="black", size=14),
+          axis.title.x = element_text(face="bold", color="black", size=16),
+          axis.title.y = element_text(face="bold", color="black", size=16),
+          panel.grid.major = element_line(colour = "#808080"),
+          panel.grid.minor = element_line(colour = "#808080", size = 1))
+  plot = ggplotly(gg, tooltip = c('x', 'y', 'wellid')) %>%
+    style(hoverlabel = label) %>% 
+    layout(font = font, 
+           yaxis = list(fixedrange = TRUE)) %>% 
+    config(displayModeBar = FALSE)
+  plot
+}
+
+
