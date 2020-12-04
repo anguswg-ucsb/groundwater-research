@@ -122,10 +122,10 @@ pals4 = colorFactor(col4, domain = aquifer2$AQ_NAME)
 pals5 = colorFactor(col6, domain = x$id)
 
 
-labels = c('0 - 100', '100 - 200', '200 - 300',
-           '300 - 400', '400 - 500',
-           '500 - 600', '600 - 700',
-           '700 - 800', '800 - 900', '> 900')
+labels = c('0', '100', '200',
+           '300', '400',
+           '500', '600',
+           '700', '800', '900')
 agency_labs = c('State', 'USGS')
 
 r0 =  dtw_range(x, -200, 0) %>% select(wellid, dtw, date,source, measurement_dist)
@@ -140,8 +140,10 @@ r8 = dtw_range(x, 700, 800) %>% select(wellid, dtw, date, source, measurement_di
 r9 = dtw_range(x, 800, 900) %>% select(wellid, dtw, date, source, measurement_dist)
 r10 = dtw_range(x, 900, 1000) %>% select(wellid, dtw, date, source, measurement_dist)
 r11 = dtw_range(x, 1000, 1400) %>% select(wellid, dtw, date, source, measurement_dist)
+
 az_leaflet = leaflet() %>%
-  addProviderTiles(providers$CartoDB.Positron, group = 'Tiles') %>% 
+  addProviderTiles(providers$CartoDB.Positron, group = 'Base') %>% 
+  addProviderTiles(providers$Esri.WorldTopoMap, group = "Terrain") %>% 
   addPolygons(data = ama2,
               fillColor  = ~pals3(OBJECTID), fillOpacity = 0.3,
               color = 'black',
@@ -151,121 +153,109 @@ az_leaflet = leaflet() %>%
               label = ~AQ_NAME, group = 'Aquifer') %>% 
   addCircleMarkers(data = r1, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r1$source == 'USGS', 'black', NA),
                    opacity = .7, 
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r1, feature.id = FALSE,
                                                row.numbers = FALSE), group = '0 - 100 ft') %>% 
   addCircleMarkers(data = r2, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r2$source == 'USGS', 'black', NA),
                    opacity = .7, 
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r2, feature.id = FALSE,
                                                row.numbers = FALSE), group = '100 - 200 ft') %>% 
   addCircleMarkers(data = r3, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r3$source == 'USGS', 'black', NA),
                    opacity = .7, 
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r3, feature.id = FALSE,
                                                row.numbers = FALSE), group = '200 - 300 ft') %>%
   addCircleMarkers(data = r4, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r4$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r4, feature.id = FALSE,
                                                row.numbers = FALSE), group = '300 - 400 ft') %>% 
   addCircleMarkers(data = r5, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r5$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r5, feature.id = FALSE,
                                                row.numbers = FALSE), group = '400 - 500 ft') %>%
   addCircleMarkers(data = r6, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r6$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r6, feature.id = FALSE,
                                                row.numbers = FALSE), group = '500 - 600 ft') %>%
   addCircleMarkers(data = r7, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r7$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r7, feature.id = FALSE,
                                                row.numbers = FALSE), group = '600 - 700 ft') %>% 
   addCircleMarkers(data = r8, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r8$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r8, feature.id = FALSE,
                                                row.numbers = FALSE), group = '700 - 800 ft') %>%
   addCircleMarkers(data = r9, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r9$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r9, feature.id = FALSE,
                                                row.numbers = FALSE), group = '800 - 900 ft') %>% 
   addCircleMarkers(data = r10, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r10$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r10, feature.id = FALSE,
                                                row.numbers = FALSE), group = '900 - 1000 ft') %>% 
   addCircleMarkers(data = r11, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r11$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r11, feature.id = FALSE,
                                                row.numbers = FALSE), group = '> 1000 ft') %>%
   addCircleMarkers(data = r0, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals1(dtw), 
-                   fillOpacity = .7, 
-                   #color = ifelse(x$source == 'USGS', 'black', NA),
-                   color = 'black',
+                   fillOpacity = .8, 
+                   color = ifelse(r0$source == 'USGS', 'black', NA),
                    opacity = .7,
-                   weight = 1.5,
+                   weight = 2.5,
                    stroke = TRUE,
                    popup = leafpop::popupTable(r0, feature.id = FALSE,
                                                row.numbers = FALSE), group = '< 0 ft') %>%
@@ -273,7 +263,8 @@ az_leaflet = leaflet() %>%
                                      '300 - 400 ft', '400 - 500 ft',
                                      '500 - 600 ft', '600 - 700 ft',
                                      '700 - 800 ft', '800 - 900 ft', '900 - 1000 ft', '> 1000 ft', 'AMA', 'Aquifer'),
-                   baseGroups = c("Tiles")) %>% 
+                   options = layersControlOptions(collapsed = FALSE),
+                   baseGroups = c("Base", "Terrain")) %>% 
   addLegend(pal = pals2,
             values = x$dtw,
             opacity = .9,
@@ -281,16 +272,11 @@ az_leaflet = leaflet() %>%
             position = "bottomleft",
             labFormat = function(type, cuts, p) {
               paste0(labels)}) %>% 
-  addLegend(pal = colorFactor('navy', domain = NULL),
-            values = c('Negative DTW'),
+  addLegend(pal = colorFactor(c("white", "black"), domain = NULL),
+            values = c('AZ', 'USGS'),
             opacity = 0.7,
             title = '',
             position = "bottomleft")
-  # addLegend(pal = colorFactor(c("white", "black"), domain = NULL),
-  #           values = x$source,
-  #           opacity = 0.7,
-  #           title = '',
-  #           position = "bottomleft")
 az_leaflet
 ```
 

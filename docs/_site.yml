@@ -1,7 +1,7 @@
 name: "Angus Watters"
 output_dir: '.'
 navbar:
-  title: "USGS Groundwater"
+  title: "US Groundwater"
   left:
     - text: "Arizona"
       href: gw_tmp.html

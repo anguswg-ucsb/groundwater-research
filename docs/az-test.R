@@ -176,19 +176,18 @@ agency_labs = c('State', 'USGS')
 # i = x %>% filter(range == 'R9') %>% select(wellid, date, dtw, measurement_dist, id)
 # j = x %>% filter(range == 'R10') %>% select(wellid, date, dtw, measurement_dist, id)
 
-r0 =  dtw_range(x, -200, 0) %>% select(wellid, date, dtw, source, measurement_dist)
-r1 = dtw_range(x, 0, 100) %>% select(wellid, date, dtw, source, measurement_dist)
-r2 = dtw_range(x, 100, 200) %>% select(wellid, date, dtw, source, measurement_dist)
-r3 = dtw_range(x, 200, 300) %>% select(wellid, date, dtw, source, measurement_dist)
-r4 = dtw_range(x, 300, 400) %>% select(wellid, date, dtw, source, measurement_dist)
-r5 = dtw_range(x, 400, 500) %>% select(wellid, date, dtw, source,  measurement_dist)
-r6= dtw_range(x, 500, 600) %>% select(wellid, date, dtw, source, measurement_dist)
-r7 = dtw_range(x, 600, 700) %>% select(wellid, date, dtw, source, measurement_dist)
-r8 = dtw_range(x, 700, 800) %>% select(wellid, date, dtw, source, measurement_dist)
-r9 = dtw_range(x, 800, 900) %>% select(wellid, date, dtw, source, measurement_dist)
-r10 = dtw_range(x, 900, 1000) %>% select(wellid, date, dtw, source, measurement_dist)
-r11 = dtw_range(x, 1000, 1400) %>% select(wellid, date, dtw, source, measurement_dist)
-
+r0 =  dtw_range(x, -200, 0) %>% select(wellid, dtw, date,source, measurement_dist)
+r1 = dtw_range(x, 0, 100) %>% select(wellid, dtw, date, source, measurement_dist)
+r2 = dtw_range(x, 100, 200) %>% select(wellid, dtw, date, source, measurement_dist)
+r3 = dtw_range(x, 200, 300) %>% select(wellid, dtw, date, source, measurement_dist)
+r4 = dtw_range(x, 300, 400) %>% select(wellid, dtw, date, source, measurement_dist)
+r5 = dtw_range(x, 400, 500) %>% select(wellid, dtw, date, source, measurement_dist)
+r6= dtw_range(x, 500, 600) %>% select(wellid, dtw, date, source, measurement_dist)
+r7 = dtw_range(x, 600, 700) %>% select(wellid, dtw, date, source, measurement_dist)
+r8 = dtw_range(x, 700, 800) %>% select(wellid, dtw, date, source, measurement_dist)
+r9 = dtw_range(x, 800, 900) %>% select(wellid, dtw, date, source, measurement_dist)
+r10 = dtw_range(x, 900, 1000) %>% select(wellid, dtw, date, source, measurement_dist)
+r11 = dtw_range(x, 1000, 1400) %>% select(wellid, dtw, date, source, measurement_dist)
 # Add blue (negatives) to Legend: midway colorFactor, set midpoint to 0
 
 # https://rstudio.github.io/dygraphs/
@@ -208,8 +207,8 @@ leaflet() %>%
               label = ~AQ_NAME, group = 'Aquifer') %>% 
   addCircleMarkers(data = r1, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r1$source == 'USGS', 'black', NA),
                    opacity = .7, 
                    weight = 2.5,
                    stroke = TRUE,
@@ -217,8 +216,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '0 - 100 ft') %>% 
   addCircleMarkers(data = r2, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r2$source == 'USGS', 'black', NA),
                    opacity = .7, 
                    weight = 2.5,
                    stroke = TRUE,
@@ -243,8 +242,8 @@ leaflet() %>%
   #           position = "bottomleft")
   addCircleMarkers(data = r3, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r3$source == 'USGS', 'black', NA),
                    opacity = .7, 
                    weight = 2.5,
                    stroke = TRUE,
@@ -252,8 +251,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '200 - 300 ft') %>%
   addCircleMarkers(data = r4, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r4$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -261,8 +260,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '300 - 400 ft') %>% 
   addCircleMarkers(data = r5, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r5$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -270,8 +269,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '400 - 500 ft') %>%
   addCircleMarkers(data = r6, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r6$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -279,8 +278,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '500 - 600 ft') %>%
   addCircleMarkers(data = r7, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r7$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -288,8 +287,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '600 - 700 ft') %>% 
   addCircleMarkers(data = r8, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r8$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -297,8 +296,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '700 - 800 ft') %>%
   addCircleMarkers(data = r9, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r9$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -306,8 +305,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '800 - 900 ft') %>% 
   addCircleMarkers(data = r10, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r10$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -315,8 +314,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '900 - 1000 ft') %>% 
   addCircleMarkers(data = r11, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals2(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r11$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
@@ -324,8 +323,8 @@ leaflet() %>%
                                                row.numbers = FALSE), group = '> 1000 ft') %>%
   addCircleMarkers(data = r0, #clusterOptions = markerClusterOptions(interactive()),
                    fillColor = ~pals1(dtw), 
-                   fillOpacity = .5, 
-                   color = ifelse(x$source == 'USGS', 'black', NA),
+                   fillOpacity = .8, 
+                   color = ifelse(r0$source == 'USGS', 'black', NA),
                    opacity = .7,
                    weight = 2.5,
                    stroke = TRUE,
