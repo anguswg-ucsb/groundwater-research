@@ -28,7 +28,7 @@ ca_site <- readNWISdata(stateCd="California", #for Arizona
 # Dtw
 ca_nwis_dtw = readNWISdata(stateCd="California", #for Arizona
                            service="gwlevels", #pull all groundwater levels
-                           startDT="2000-01-01", #start as early as possible
+                           startDT="1900-01-01", #start as early as possible
                            endDT="2020-01-01") %>% #start as current as possible
   renameNWISColumns() %>%  #rename columns so they are universal across all pulls
   select(agency_cd, site_no, lev_dt, lev_va) #only keep relevent columns %>% 
@@ -110,5 +110,5 @@ ca_nwis_unique_sites <- ca_nwis_clean %>%
   mutate(source = "lb_national") %>% 
   distinct(site_id, .keep_all = TRUE) %>% 
   mutate(id = 'US')
-
-
+saveRDS(ca_nwis_unique_sites, file = 'data/ca_usgs_unique.rds')
+saveRDS(ca_nwis_all, file = 'data/ca_usgs_time.rds')
